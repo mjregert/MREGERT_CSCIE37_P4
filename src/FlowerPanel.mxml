@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Panel xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 creationComplete="panel1_creationCompleteHandler(event)">
+	<s:layout>
+		<s:BasicLayout/>
+	</s:layout>
+	<fx:Script>
+		<![CDATA[
+			import flash.globalization.LocaleID;
+			
+			import mx.events.FlexEvent;
+			
+			[Bindable]
+			public var localeId: LocaleID;
+			
+			[Bindable]
+			public var baseUrl: String;
+			
+			[Bindable]
+			public var flower: Object;
+			
+			[Bindable]
+			public var occasionsById: Object;
+			
+			protected function panel1_creationCompleteHandler(event:FlexEvent):void
+			{
+				this.title = getLocalizedFlowerName();
+				
+				vg.removeAllElements();
+				for each (var color: uint in getLocalizedColors()) {
+					var cb:ColorBox = new ColorBox();
+					cb.color = color;
+					vg.addElement(cb);
+				}
+			}
+			
+			protected function getLocalizedFlowerName(): String {
+				var localizedName: String = "";
+				for (var kvPairIndex: Object in flower["DisplayName"]) {
+					var kvPair:Object = flower["DisplayName"][kvPairIndex];
+					if (kvPair["Key"] == localeId.getLanguage()) {
+						localizedName = kvPair["Value"];		
+					}
+				}
+				if (localizedName == "") {
+					localizedName = "Not Found: " + flower["GlobalDisplayName"];
+				}
+				return localizedName;
+			}
+			
+			protected function getLocalizedPrice(): String {
+				var localizedPrice:String = flower["PriceInfoOfCurrentBillingRegion"]["Currency"] + flower["PriceInfoOfCurrentBillingRegion"]["Price"];
+				return localizedPrice;
+			}
+			
+			protected function getLocalizedColors(): Array {
+				var colors: Array = new Array();
+				
+				for each(var color:String in flower["Colors"]) {
+					switch (color) {
+						case "Red": {
+							colors.push(0xFF0000);
+							break;
+						}
+						case "White": {
+							colors.push(0xFFFFFF);
+							break;
+						}
+						case "Pink": {
+							colors.push(0xFF1493);
+							break;
+						}
+						case "Purple": {
+							colors.push(0xBA55D3);
+							break;
+						}
+						case "Golden": {
+							colors.push(0xFFD700);
+							break;
+						}
+					}
+				}
+				return colors;
+			}
+			
+			protected function getLocalizedMarkets(): Array {
+				var markets: Array = flower["MarketName"];
+				
+				return markets;
+			}
+			
+			protected function getLocalizedOccassions(): Array {
+				var occasions:Array = new Array();
+				for each (var id:String in flower["OccasionIds"]) {
+					var occasion:Object = occasionsById[id]; 
+					occasions.push(id);// Timing issue present, occasaionsaById not populated yet for some reason here   occasion["GlobalDisplayName"]);
+				}
+				return occasions;
+			}
+		]]>
+	</fx:Script>
+	<s:Image source="{baseUrl + flower['ImageUri']}" width="100" height="100" left="10" top="10"/>
+	<s:Form left="120" right="10" top="10">
+		<!-- Reduce gap between form items. -->
+		<s:layout>
+			<s:FormLayout gap="-10"/>
+		</s:layout>  
+		<s:FormItem id="lblColors" label="{resourceManager.getString('resources','colors')}">
+			<s:VGroup id="vg"/>
+		</s:FormItem>
+	</s:Form>
+	<s:Form left="10" right="10" top="120" bottom="10">
+		<!-- Reduce gap between form items. -->
+		<s:layout>
+			<s:FormLayout gap="-10"/>
+		</s:layout>  
+		<s:FormItem id="lblPrice" label="{resourceManager.getString('resources','price')}">
+			<s:Label id="valPrice" text="{getLocalizedPrice()}"/>
+		</s:FormItem>
+		<s:FormItem id="lblOccasions" label="{resourceManager.getString('resources','occasions')}">
+			<s:Label id="occasions" text="{getLocalizedOccassions()}"/>
+		</s:FormItem>
+	</s:Form>
+</s:Panel>
