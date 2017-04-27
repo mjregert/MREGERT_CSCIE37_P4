@@ -12,44 +12,37 @@
 		<!-- Flower App Supported Languages REST Call --> 
 		<s:HTTPService id="flowerServiceLangRequest"
 					   useProxy="false" method="GET" resultFormat="e4x"
-					   result="flowerServiceLangRequest_resultHandler(event)"
-					   fault="flowerServiceLangRequest_faultHandler(event)"> 
+					   result="flowerServiceLangRequest_resultHandler(event)">
 		</s:HTTPService> 
 		
 		<!-- Flower App Supported Markets REST Call --> 
 		<s:HTTPService id="flowerServiceMarketRequest"
 					   useProxy="false" method="GET" resultFormat="e4x"
-					   result="flowerServiceMarketRequest_resultHandler(event)"
-					   fault="flowerServiceMarketRequest_faultHandler(event)">
+					   result="flowerServiceMarketRequest_resultHandler(event)">
 		</s:HTTPService>
 		
 		<!-- Flower App Supported Flowers REST Call --> 
 		<s:HTTPService id="flowerServiceFlowerRequest"
 					   useProxy="false" method="GET" resultFormat="e4x"
-					   result="flowerServiceFlowerRequest_resultHandler(event)"
-					   fault="flowerServiceFlowerRequest_faultHandler(event)">
+					   result="flowerServiceFlowerRequest_resultHandler(event)">
 		</s:HTTPService>
 		
 		<!-- Flower App Flowers by Market REST Call --> 
 		<s:HTTPService id="flowerServiceFlowersByMarketRequest"
 					   useProxy="false" method="GET" resultFormat="e4x"
-					   result="flowerServiceFlowersByMarketRequest_resultHandler(event)"
-					   fault="flowerServiceFlowersByMarketRequest_faultHandler(event)">
+					   result="flowerServiceFlowerRequest_resultHandler(event)">
 		</s:HTTPService>
 		
 		<!-- Flower App Occasions by Market REST Call --> 
 		<s:HTTPService id="flowerServiceOccasionsByMarketRequest"
 					   useProxy="false" method="GET" resultFormat="e4x"
-					   result="flowerServiceOccasionsByMarketRequest_resultHandler(event)"
-					   fault="flowerServiceOccasionsByMarketRequest_faultHandler(event)">
-			
+					   result="flowerServiceOccasionsByMarketRequest_resultHandler(event)">
 		</s:HTTPService>
 		
 		<!-- Flower App Flowers by Market and Occasion REST Call --> 
 		<s:HTTPService id="flowerServiceFlowersByMarketAndOccasionRequest"
 					   useProxy="false" method="GET" resultFormat="e4x"
-					   result="flowerServiceFlowersByMarketAndOccasionRequest_resultHandler(event)"
-					   fault="flowerServiceFlowersByMarketAndOccasionRequest_faultHandler(event)">
+					   result="flowerServiceFlowerRequest_resultHandler(event)">
 		</s:HTTPService>
 	</fx:Declarations>
 	
@@ -57,12 +50,10 @@
 		<![CDATA[
 			import flash.globalization.CurrencyFormatter;
 			import flash.globalization.DateTimeFormatter;
-			import flash.globalization.LastOperationStatus;
 			import flash.globalization.LocaleID;
 			
 			import mx.collections.ArrayCollection;
 			import mx.events.FlexEvent;
-			import mx.rpc.events.FaultEvent;
 			import mx.rpc.events.ResultEvent;
 			
 			import spark.events.IndexChangeEvent;
@@ -78,23 +69,19 @@
 			// MODEL OBJECTS
 			// Normally, I'd convert these to actual strongly-typed class objects but just use Object here
 			[Bindable] protected var faLanguages: ArrayCollection = new ArrayCollection();
-			[Bindable] protected var selectedLocaleIndex:Number;
-			protected var faMarkets: Array = new Array();
+			[Bindable] protected var faRegions: ArrayCollection = new ArrayCollection();
+			[Bindable] protected var faMarkets: ArrayCollection = new ArrayCollection();
+			[Bindable] protected var faOccasions: ArrayCollection = new ArrayCollection();
+			
+			[Bindable] protected var selectedLanguageIndex: Number;
+			[Bindable] protected var selectedRegionIndex: Number;
+			[Bindable] protected var selectedMarketIndex: Number;
+			[Bindable] protected var selectedOccasionIndex: Number;
+			
 			protected var faFlowers: Array = new Array();
-			protected var faOccasions: Object = new Object();
-			protected var faOccasionsIds: Array = new Array();
-			protected var currentOccasionIndex:int = 0;
-			
-			//******************************************
-			// ATTRIBUTES
-			[Bindable]
-			protected var marketId: String;
-			
-			[Bindable]
-			protected var occasionId: String;
-			
-			[Bindable]
-			protected var localeOptions: ArrayCollection = new ArrayCollection(["i-default", "en_US", "de_DE", "fr_FR", "ko_KR", "ja_JP", "ru_RU"]);
+			//protected var faOccasions: Object = new Object();
+			//protected var faOccasionsIds: Array = new Array();
+			//protected var currentOccasionIndex:int = 0;
 			
 			
 			/* Initially set the preferred locale to use the user's default linguistic preferences, as specified in the
@@ -103,6 +90,9 @@
 			*/
 			[Bindable]
 			protected var preferredLocale: String = LocaleID.DEFAULT;
+			
+			[Bindable]
+			protected var preferredRegion: String; // Will be fill in during initialization
 			
 			/* Create a locale ID class.
 			
@@ -159,39 +149,23 @@
 			// METHODS		
 			protected function initializeHandler(event:FlexEvent):void
 			{
+				callLog.text = "";
 				updateLocaleSettings();
 				
 				flowerServiceLangRequest.url = URL_BASE + URL_LANGUAGES;
+				callLog.text += flowerServiceLangRequest.url + "\n";
 				flowerServiceLangRequest.send();
 				
 				flowerServiceMarketRequest.url = URL_BASE + URL_MARKETS;
+				callLog.text += flowerServiceMarketRequest.url + "\n";
 				flowerServiceMarketRequest.send();
 				
 				flowerServiceFlowerRequest.url = URL_BASE + URL_FLOWERS;
+				callLog.text += flowerServiceFlowerRequest.url + "\n";
 				flowerServiceFlowerRequest.send();
 			}
 			
 			protected function creationCompleteHandler(event:FlexEvent):void {
-				
-				// Get the occasions for this market
-				flowerServiceOccasionsByMarketRequest.url = URL_BASE + "/" + localeId.getRegion().toLowerCase() + URL_OCCASIONS + "?languages=" + localeId.getLanguage().toLowerCase();
-				flowerServiceOccasionsByMarketRequest.send();
-				
-				
-				// Call the Flower Services
-				//flowerServiceLangRequest.url = URL_BASE + URL_LANGUAGES + "?languages=" + localeId.getLanguage().toLowerCase();
-				//flowerServiceLangRequest.send();
-				
-				//flowerServiceMarketRequest.url = URL_BASE + URL_MARKETS + "?languages=" + localeId.getLanguage().toLowerCase();
-				//flowerServiceMarketRequest.send();
-				
-				//flowerServiceFlowerRequest.url = URL_BASE + URL_FLOWERS + "?languages=" + localeId.getLanguage().toLowerCase() + "&billingRegion=" + localeId.getRegion().toLowerCase();
-				//flowerServiceFlowerRequest.send();
-				
-				// Get the flowers for this market
-				//flowerServiceFlowersByMarketRequest.url = URL_BASE + "/" + localeId.getRegion().toLowerCase() + URL_FLOWERS + "?languages=" + localeId.getLanguage().toLowerCase() + "&billingRegion=" + localeId.getRegion().toLowerCase();
-				//flowerServiceFlowersByMarketRequest.send();
-				
 				
 			}
 			
@@ -199,36 +173,20 @@
 				// Create a new date/time formatter object based on the preferred locale.
 				dateTimeFormatter = new DateTimeFormatter(preferredLocale);
 				
+				// Saving the preferred region so it doesn't get overwritten by Flex - BUG in Flex
+				if (preferredLocale == "i-default") {
+					preferredRegion = dateTimeFormatter.actualLocaleIDName.slice(3,5).toLowerCase();
+					selectedRegionIndex = 0;
+				}
+				
 				// Create c currency formatter object based on the preferred locale.
 				currencyFormatter = new CurrencyFormatter(preferredLocale);
 				
 				// Create a new locale ID object based on the locale name from the date time formatter
 				localeId = new LocaleID(dateTimeFormatter.actualLocaleIDName);
-			}
-			
-			//-----------------------------------------------------------------------------			
-/*			protected function localeSelecton_changeHandler(event:IndexChangeEvent):void {
-				preferredLocale = String(localeOptions.getItemAt(localeSelecton.selectedIndex));
-				var lang: String = String(localeOptions.getItemAt(localeSelecton.selectedIndex));
-				resourceManager.localeChain = [lang, "en_US"];
-				creationCompleteHandler(null);
-			}
-	*/		
-			//-----------------------------------------------------------------------------			
-			[Bindable (event="propertyChange")]
-			protected function getFirstDayOfWeek():String {
-				var weekDayNames: Vector.<String> = dateTimeFormatter.getWeekdayNames();
-				var firstDayWeekIndex:int = dateTimeFormatter.getFirstWeekday();
-				return weekDayNames[firstDayWeekIndex];
-			}
-			
-			//-----------------------------------------------------------------------------			
-			protected function vectorToArray(v: Object): Array {
-				var ret: Array = new Array();
-				for each(var str: String in v) {
-					ret.push(str);
-				}
-				return ret;
+				
+				callLog.text += "Changing language to: " + preferredLocale + "\n";
+				callLog.text += "Changing region to: " + preferredRegion + "\n";
 			}
 			
 			//*****************************************************************
@@ -237,40 +195,46 @@
 			protected function flowerServiceLangRequest_resultHandler(event:ResultEvent):void
 			{
 				faLanguages = new ArrayCollection();
-				var output:String = "";
 				var languages: Array = JSON.parse(event.result.toString()) as Array;
 				for (var index:Object in languages) {
 					var language: Object = languages[index];
-					faLanguages.addItem(language["LocalizedNames"][0]["Value"]);
+					var menuOption: Object = new Object();
+					menuOption["data"] = language["LanguageId"];
+					menuOption["label"] = language["LocalizedNames"][0]["Value"];
+					faLanguages.addItem(menuOption);
 					if (localeId.getLanguage() == language["LanguageId"]) {
-						selectedLocaleIndex = Number(index);
-				    }
+						selectedLanguageIndex = Number(index);
+					}
 				}
-			}
-			
-			//-----------------------------------------------------------------------------			
-			protected function flowerServiceLangRequest_faultHandler(event:FaultEvent):void
-			{
-				//FIX			flowerServiceLanguages.text = event.message.toString();
 			}
 			
 			//-----------------------------------------------------------------------------			
 			protected function flowerServiceMarketRequest_resultHandler(event:ResultEvent):void
 			{
-				faMarkets = new Array();
-				var output:String = "";
+				faMarkets = new ArrayCollection();
+				faRegions = new ArrayCollection();
 				var markets: Array = JSON.parse(event.result.toString()) as Array;
 				for (var index:Object in markets) {
-					var market: Object = markets[index];	
-					// Save the data
-					faMarkets.push(market);
+					var market: Object = markets[index];
+					var region: Object = market[index];
+					var marketMenuOption: Object = new Object();
+					var regionMenuOption: Object = new Object();
+					var marketId: String = market["MarketId"];
+					var language: String = localeId.getLanguage().toLowerCase();
+					marketMenuOption["data"] = marketId;
+					regionMenuOption["data"] = marketId;
+					for each (var marketName: Object in market["MarketName"]) {
+						if (language == marketName["Key"]) {
+							marketMenuOption["label"] = marketName["Value"];
+							regionMenuOption["label"] = marketName["Value"];
+						}
+					}
+					faMarkets.addItem(marketMenuOption);
+					faRegions.addItem(regionMenuOption);
+					if (localeId.getRegion() == market["MarketId"]) {
+						selectedMarketIndex = Number(index);
+					}
 				}
-			}
-			
-			//-----------------------------------------------------------------------------			
-			protected function flowerServiceMarketRequest_faultHandler(event:FaultEvent):void
-			{
-				//FIX				flowerServiceMarkets.text = event.message.toString();
 			}
 			
 			//-----------------------------------------------------------------------------			
@@ -287,111 +251,21 @@
 			}
 			
 			//-----------------------------------------------------------------------------			
-			protected function flowerServiceFlowerRequest_faultHandler(event:FaultEvent):void
-			{
-				//FIX				flowerServiceFlowers.text = event.message.toString();
-				
-			}
-			
-			//-----------------------------------------------------------------------------			
-			protected function flowerServiceFlowersByMarketRequest_resultHandler(event:ResultEvent):void
-			{
-				//FIXflowerByMarket.text = "";
-				var url:String = event.target.url;
-				var tokens:Array = url.split('/', 4);
-				var currentMarket:String = tokens[3]; // UGLY HACK, but it works for now
-				var output:String = "Market=" + currentMarket + ": ";
-				var flowers: Array = JSON.parse(event.result.toString()) as Array;
-				for (var index:Object in flowers) {
-					var flower: Object = flowers[index];
-					output += getLocalizedFlowerName(flower);
-					if (index < flowers.length-1) {
-						output += " , ";
-					}
-				}
-				output += "\n";
-				//FIXflowerByMarket.text += output;
-			}
-			
-			//-----------------------------------------------------------------------------			
-			protected function flowerServiceFlowersByMarketRequest_faultHandler(event:FaultEvent):void
-			{
-				// TODO Auto-generated method stub
-				
-			}
-			
-			//-----------------------------------------------------------------------------			
 			protected function flowerServiceOccasionsByMarketRequest_resultHandler(event:ResultEvent):void
 			{
-				//FIXoccasionsByMarket.text = "";
-				var url:String = event.target.url;
-				var tokens:Array = url.split('/', 4);
-				var currentMarket:String = tokens[3]; // UGLY HACK, but it works for now
-				var output:String = "Market=" + currentMarket + ": ";
+				faOccasions = new ArrayCollection();
 				var occasions: Array = JSON.parse(event.result.toString()) as Array;
 				for (var index:Object in occasions) {
 					var occasion: Object = occasions[index];
-					faOccasions[occasion["OccasionId"]] = occasion;
-					faOccasionsIds.push(occasion["OccasionId"]);
-					output += occasion["GlobalDisplayName"];
-					if (index < occasions.length-1) {
-						output += " , ";
+					var menuOption: Object = new Object();
+					menuOption["data"] = occasion["OccasionId"];
+					for each (var displayName: Object in occasion["DisplayName"]) {
+						if (localeId.getLanguage().toLowerCase() == displayName["Key"]) {
+							menuOption["label"] = displayName["Value"];
+						}
 					}
+					faOccasions.addItem(menuOption);
 				}
-				output += "\n";
-				//FIXoccasionsByMarket.text += output;
-				
-				//BUG - calling the flowers by market and occasions asynchronously in a loop has problems, force it to call it in order
-				//FIXflowersByOccasionsAndMarket.text = ""; // Reset 
-				flowerServiceFlowersByMarketAndOccasionRequest.url = URL_BASE + "/" + localeId.getRegion().toLowerCase() + "/" + faOccasionsIds[currentOccasionIndex] + URL_FLOWERS + "?languages=" + localeId.getLanguage().toLowerCase() + "&billingRegion=" + localeId.getRegion().toLowerCase() + "&rand=" + Math.random();
-				flowerServiceFlowersByMarketAndOccasionRequest.send();
-			}
-			
-			//-----------------------------------------------------------------------------			
-			// Now get the flowers for each occasion for this market
-
-			
-			protected function flowerServiceOccasionsByMarketRequest_faultHandler(event:FaultEvent):void
-			{
-				// TODO Auto-generated method stub
-				
-			}
-			
-			//-----------------------------------------------------------------------------			
-			protected function flowerServiceFlowersByMarketAndOccasionRequest_resultHandler(event:ResultEvent):void
-			{
-				var flowers: Array = JSON.parse(event.result.toString()) as Array;
-				var url:String = event.target.url;
-				var tokens:Array = url.split('/', 5);
-				var currentOccasion:String = tokens[4]; // UGLY HACK, but it works for now
-				var occasion:Object = faOccasions[currentOccasion];
-				
-				//now append output here
-				var output: String = "Occasion=" + occasion["GlobalDisplayName"] + ": Flowers=";  
-				for (var index:Object in flowers) {
-					var flower: Object = flowers[index];
-					output += getLocalizedFlowerName(flower);
-					if (index < flowers.length-1) {
-						output += " , ";
-					}
-				}
-				output += "\n";
-
-				//FIXflowersByOccasionsAndMarket.text += output;
-					
-				//BUG - calling the flowers by market and occasions asynchronously in a loop has problems, force it to call it in order
-				currentOccasionIndex++;
-				if (currentOccasionIndex < faOccasionsIds.length-1) {
-					flowerServiceFlowersByMarketAndOccasionRequest.url = URL_BASE + "/" + localeId.getRegion().toLowerCase() + "/" + faOccasionsIds[currentOccasionIndex] + URL_FLOWERS + "?languages=" + localeId.getLanguage().toLowerCase() + "&billingRegion=" + localeId.getRegion().toLowerCase() + "&rand=" + Math.random();
-					flowerServiceFlowersByMarketAndOccasionRequest.send();
-				}
-			}
-			
-			//-----------------------------------------------------------------------------			
-			protected function flowerServiceFlowersByMarketAndOccasionRequest_faultHandler(event:FaultEvent):void
-			{
-				// TODO Auto-generated method stub
-				
 			}
 			
 			protected function renderFlowerPanels(): void {
@@ -401,7 +275,6 @@
 					panel.localeId = localeId;
 					panel.baseUrl = URL_BASE; // Should be done differently, but works
 					panel.flower = flower;
-					panel.occasionsById = faOccasions;
 					panel.width = 350;
 					panel.height = 250;
 					myFlow.addElement(panel);
@@ -424,10 +297,66 @@
 			
 			protected function dlLanguages_changeHandler(event:IndexChangeEvent):void
 			{
+				callLog.text += "---------------------------------------\n";
+				preferredLocale = faLanguages[event.newIndex]["data"];
 				updateLocaleSettings();
 				flowerServiceLangRequest.url = URL_BASE + URL_LANGUAGES + "?languages=" + localeId.getLanguage().toLowerCase();
+				callLog.text += flowerServiceLangRequest.url + "\n";
 				flowerServiceLangRequest.send();
+				flowerServiceMarketRequest.url = URL_BASE + URL_MARKETS + "?languages=" + localeId.getLanguage().toLowerCase();
+				callLog.text += flowerServiceMarketRequest.url + "\n";
+				flowerServiceMarketRequest.send();
 				renderFlowerPanels();
+				
+				// The language changed, so reset the market and occasions as the available options may have changed.
+				selectedMarketIndex = -1;
+				selectedOccasionIndex = -1;
+			}
+			
+			protected function dlMarkets_changeHandler(event:IndexChangeEvent):void
+			{
+				callLog.text += "---------------------------------------\n";
+				selectedMarketIndex = event.newIndex;
+				// Get the flowers for this market
+				var marketId: String = faMarkets[selectedMarketIndex].data;
+				flowerServiceFlowersByMarketRequest.url = URL_BASE + "/" + marketId + URL_FLOWERS + "?languages=" + localeId.getLanguage().toLowerCase() + "&billingRegion=" + preferredRegion;
+				callLog.text += flowerServiceFlowersByMarketRequest.url + "\n";
+				flowerServiceFlowersByMarketRequest.send();
+				
+				// Get the occasions for this market
+				flowerServiceOccasionsByMarketRequest.url = URL_BASE + "/" + marketId + URL_OCCASIONS + "?languages=" + localeId.getLanguage().toLowerCase();
+				callLog.text += flowerServiceOccasionsByMarketRequest.url + "\n";
+				flowerServiceOccasionsByMarketRequest.send();
+				
+				// The market changed, so reset the occasions as the available options may have changed.
+				selectedOccasionIndex = -1;
+			}
+			
+			protected function dlOccasions_changeHandler(event:IndexChangeEvent):void
+			{
+				callLog.text += "---------------------------------------\n";
+				selectedOccasionIndex = event.newIndex;
+				// Get the flowers for this market and occasion
+				var marketId: String = faMarkets[selectedMarketIndex].data;
+				var occasionId: String = faOccasions[selectedOccasionIndex].data;
+				flowerServiceFlowersByMarketAndOccasionRequest.url = URL_BASE + "/" + marketId + "/" + occasionId + URL_FLOWERS + "?languages=" + localeId.getLanguage().toLowerCase() + "&billingRegion=" + preferredRegion;
+				callLog.text += flowerServiceFlowersByMarketAndOccasionRequest.url + "\n";
+				flowerServiceFlowersByMarketRequest.send();
+			}
+			
+			protected function dlRegion_changeHandler(event:IndexChangeEvent):void
+			{
+				selectedRegionIndex = event.newIndex;
+				preferredRegion = faRegions[selectedRegionIndex].data;
+				// Get the flowers for this market and occasion
+				flowerServiceFlowerRequest.url = URL_BASE + URL_FLOWERS + "?languages=" + localeId.getLanguage().toLowerCase() + "&billingRegion=" + preferredRegion;
+				callLog.text += flowerServiceFlowerRequest.url + "\n";
+				flowerServiceFlowerRequest.send();
+				
+				// The region changed, so reset the market and occasions as the available options may have changed.
+				selectedMarketIndex = -1;
+				selectedOccasionIndex = -1;
+				
 			}
 			
 		]]>
@@ -435,10 +364,46 @@
 	
 	
 	<s:Scroller left="1" right="1" top="1" bottom="1">
-		<s:VGroup>
+		<s:VGroup width="100%" height="100%">
 			<s:HGroup>
-				<s:DropDownList id="dlLanguages" dataProvider="{faLanguages}" selectedIndex="{selectedLocaleIndex}" change="dlLanguages_changeHandler(event)"/>
-				<s:DropDownList id="dlMarkets"/>
+				<s:VGroup>
+					<s:Label text="Language:"/>
+					<s:DropDownList id="dlLanguages"
+									dataProvider="{faLanguages}"
+									selectedIndex="{selectedLanguageIndex}" 
+									change="dlLanguages_changeHandler(event)"
+									width="200"/>
+				</s:VGroup>
+				
+				<s:VGroup>
+					<s:Label text="Region:"/>
+					<s:DropDownList id="dlRegion"
+									dataProvider="{faRegions}" 
+									selectedIndex="{selectedRegionIndex}"
+									change="dlRegion_changeHandler(event)"
+									width="200"/>
+				</s:VGroup>
+				
+				<s:VGroup>
+					<s:Label text="Market:"/>
+					<s:DropDownList id="dlMarkets" 
+									prompt="{resourceManager.getString('resources', 'marketPrompt')}"
+									dataProvider="{faMarkets}" 
+									selectedIndex="{selectedMarketIndex}"
+									change="dlMarkets_changeHandler(event)"
+									width="200"/>
+				</s:VGroup>
+				
+				<s:VGroup>
+					<s:Label text="Occasion:"/>
+					
+					<s:DropDownList id="dlOccasions" 
+									dataProvider="{faOccasions}" 
+									prompt="{resourceManager.getString('resources', 'occasionPrompt')}"
+									selectedIndex="{selectedOccasionIndex}"
+									change="dlOccasions_changeHandler(event)"
+									width="200"/>
+				</s:VGroup>
 			</s:HGroup>
 			<mx:Tile id="myFlow" 
 					 direction="horizontal" 
@@ -447,6 +412,8 @@
 					 paddingRight="10" paddingLeft="10" 
 					 verticalGap="15" horizontalGap="10"
 					 verticalCenter="100" horizontalCenter="0"/>
+			
+			<s:Label id="callLog" text=""/>
 		</s:VGroup>
 	</s:Scroller>
 	
